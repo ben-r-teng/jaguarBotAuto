@@ -484,3 +484,11 @@ C:\Users\Ben\Google Drive\Linked Folder\School\Spring 2016\Autonomous Robots\Jag
 C:\Users\Ben\Google Drive\Linked Folder\School\Spring 2016\Autonomous Robots\Jaguar_BaseCode_03\obj\x86\Release\DrRobot.JaguarControl.JaguarCtrlResource.resources
 C:\Users\Ben\Google Drive\Linked Folder\School\Spring 2016\Autonomous Robots\Jaguar_BaseCode_03\obj\x86\Release\DrRobot.JaguarControl.Properties.Resources.resources
 C:\Users\Ben\Google Drive\Linked Folder\School\Spring 2016\Autonomous Robots\Jaguar_BaseCode_03\obj\x86\Release\JaguarControl.csproj.GenerateResource.Cache
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\Interop.AXISMEDIACONTROLLib.dll
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\Interop.DRROBOTSentinelCONTROLLib.dll
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\Interop.EARTHLib.dll
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\AxInterop.AXISMEDIACONTROLLib.dll
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\AxInterop.DRROBOTSentinelCONTROLLib.dll
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.csproj.ResolveComReference.cache
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.exe
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.pdb
