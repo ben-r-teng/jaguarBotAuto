@@ -47,11 +47,11 @@ namespace DrRobot.JaguarControl
         private double diffEncoderPulseL, diffEncoderPulseR;
         private double maxVelocity = 0.25;
         private double Kpho = 1;
-        private double Kalpha = 8;//4
-        private double Kbeta = -0.5;//-1.0;
-        const double alphaTrackingAccuracy = 0.20;
-        const double betaTrackingAccuracy = 0.10;
-        const double phoTrackingAccuracy = 0.10;
+        private double Kalpha = 4;//4
+        private double Kbeta = -.5;//-1.0;
+        const double alphaTrackingAccuracy = 0.10;
+        const double betaTrackingAccuracy = 0.05;
+        const double phoTrackingAccuracy = 0.05;
         double time = 0;
         DateTime startTime;
 
@@ -160,7 +160,7 @@ namespace DrRobot.JaguarControl
 
                 // Students can select what type of localization and control
                 // functions to call here. For lab 3, we just call the function
-                // FlyToSetPoint().
+                FlyToSetPoint();
                 
                 // Update Sensor Readings
                 UpdateSensorMeasurements();
@@ -431,67 +431,121 @@ namespace DrRobot.JaguarControl
         private void FlyToSetPoint()
         {
 
-            // ****************** Additional Student Code: Start ************
-
-            // Put code here to calculate motorSignalR and 
-            // motorSignalL. Make sure the robot does not exceed 
-            // maxVelocity!!!!!!!!!!!!
-
             double deltax = desiredX - x_est;
             double deltay = desiredY - y_est;
-            double pho = Math.Sqrt(Math.Pow(deltax, 2) + Math.Pow(deltay, 2));;
-            double alpha = -desiredT + Math.Atan2(deltay, deltax); ;
+
+            Console.WriteLine("Calc: {0} deltax: {1} deltay: {2}\n", Math.Pow(deltax, 2), deltax, deltay);
+
+            double pho = Math.Sqrt(Math.Pow(deltax, 2) + Math.Pow(deltay, 2));
+            double alpha = -desiredT + Math.Atan2(deltay, deltax);
+            Console.WriteLine("alpha: {0} calc2: {1}\n", alpha, Math.Atan2(deltay, deltax));
             double beta;
+            
             bool isForward = true;
             double desiredV;
             double desiredW;
 
             double wheelCirc = wheelRadius * 2 * Math.PI;
 
+            // Check if the robot should drive forwards
             if (Math.Abs(alpha) > Math.PI / 2)
             {
+                //Backwards movement calculation
                 alpha = -desiredT + Math.Atan2(-deltay, -deltax);
                 isForward = false;
             }
-            
+
             beta = -t_est - alpha;
 
+            // Ensure that all angles are between -Pi and Pi
             alpha = ThetaWrapAround(alpha);
             beta = ThetaWrapAround(beta);
 
+            Console.WriteLine("pho: {0} alpha: {1} beta: {2}\n", pho, alpha, beta);
+
+            // Check if the robot has reached the threshold displacement and the orientation
             if (Math.Abs(pho) < phoTrackingAccuracy && Math.Abs(beta) < betaTrackingAccuracy)
             {
                 desiredRotRateL = 0;
                 desiredRotRateR = 0;
                 Console.WriteLine("Stopped\n");
             }
-
-            if (isForward)
-            {
-                desiredV = Kpho * pho;
-                desiredW = Kalpha * alpha + Kbeta * beta;
-            }
             else
             {
-                desiredV = -Kpho * pho;
-                desiredW = Kalpha * alpha + Kbeta * beta;
+                //Error--------------------------------------------------------------------
+                // Calculates the velocity and angular velocity based on the gain values
+                // and if the robot should be moving forwards or backwards
+                if (isForward)
+                {
+                    desiredV = Kpho * pho;
+                    desiredW = Kalpha * alpha + Kbeta * beta;
+                    Console.WriteLine("Forward\n");
+                }
+                else
+                {
+                    desiredV = -Kpho * pho;
+                    desiredW = Kalpha * alpha + Kbeta * beta;
+                    Console.WriteLine("Backward\n");
+                }
+
+
+/*
+                double w1 = (desiredW + desiredV / robotRadius) / 2;
+                double w2 = (desiredW - desiredV / robotRadius) / 2;
+
+                double psi1 = 2 * robotRadius / wheelRadius * w1;
+                double psi2 = -2 * robotRadius / wheelRadius * w2;
+*/
+                double psi1 = (desiredV + robotRadius * desiredW) / wheelRadius;
+                double psi2 = (desiredV - robotRadius * desiredW) / wheelRadius;
+                
+
+                desiredRotRateL = (short)(psi2 / wheelCirc * ((double)pulsesPerRotation));
+                desiredRotRateR = (short)(psi1 / wheelCirc * ((double)pulsesPerRotation));
+
+                desiredRotRateL = checkWheelRot(desiredRotRateL);
+                desiredRotRateR = checkWheelRot(desiredRotRateR);
+
+//                capWheelRot(desiredRotRateL, desiredRotRateR);
+
+                Console.WriteLine("desiredV: {0} desiredW: {1}\n", desiredV, desiredW);
+                Console.WriteLine("psi1: {0} psi2: {1}\n", psi1, psi2);
+                Console.WriteLine("desiredRotRateL: {0} desiredRotRateR: {1}\n", desiredRotRateL, desiredRotRateR);
+
+//                desiredRotRateL = 0;
+//                desiredRotRateR = 0;
             }
-
-            double w1 = (desiredW + desiredV/robotRadius)/2;
-            double w2 = (desiredW - desiredV/robotRadius)/2;
-
-            double psi1 =  2 * robotRadius / wheelRadius * w1;
-            double psi2 = -2 * robotRadius / wheelRadius * w2;
-
-            Console.WriteLine("pho: {0} alpha: {1} beta: {2}\n", pho, alpha, beta);
-
-            desiredRotRateL = (short) (psi2/ wheelCirc * (double)pulsesPerRotation);
-            desiredRotRateR =  (short) (psi1/ wheelCirc * (double)pulsesPerRotation);
-
-            Console.WriteLine("desiredRotRateL: {0} desiredRotRateR: {1}\n", desiredRotRateL, desiredRotRateR);
-            // ****************** Additional Student Code: End   ************
         }
 
+        // Sets the upper limit of the wheel rotation speed
+        short checkWheelRot(short desiredRotRate)
+        {
+            short rotRateLimit = 150;
+            if (desiredRotRate > rotRateLimit)
+            {
+                desiredRotRate = rotRateLimit;
+            }
+            else if (desiredRotRate < ((short)-rotRateLimit))
+            {
+                desiredRotRate = ((short)-rotRateLimit);
+            }
+            return desiredRotRate;
+        }
+
+        void capWheelRot(short rotRateL, short rotRateR)
+        {
+            short rotRateLimit = 150;
+            if (Math.Abs(rotRateL) > rotRateLimit || Math.Abs(rotRateR) > rotRateLimit)
+            {
+                double maxScaling = Math.Max(Math.Abs(rotRateL), Math.Abs(rotRateR));
+                desiredRotRateL = (short) ((double)(rotRateL) / maxScaling * (double)(rotRateLimit));
+                desiredRotRateR = (short) ((double)(rotRateR) / maxScaling * (double)(rotRateLimit));
+            }
+        }
+
+
+        // Ensure that all angles are between -Pi and Pi
+        // If they are over, the angle values will rollover
         private double ThetaWrapAround(double angle)
         {
             if (angle > Math.PI)
