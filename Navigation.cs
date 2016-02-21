@@ -444,7 +444,7 @@ namespace DrRobot.JaguarControl
             //            Console.WriteLine("Calc: {0} deltax: {1} deltay: {2}\n", Math.Pow(deltax, 2), deltax, deltay);
 
             double pho = Math.Sqrt(Math.Pow(deltax, 2) + Math.Pow(deltay, 2));
-            double alpha = -desiredT + Math.Atan2(deltay, deltax);
+            double alpha = -t_est + Math.Atan2(deltay, deltax);
             //            Console.WriteLine("alpha: {0} calc2: {1}\n", alpha, Math.Atan2(deltay, deltax));
             double beta;
 
@@ -458,11 +458,11 @@ namespace DrRobot.JaguarControl
             if (Math.Abs(alpha) > Math.PI / 2)
             {
                 //Backwards movement calculation
-                alpha = -desiredT + Math.Atan2(-deltay, -deltax);
+                alpha = -t_est + Math.Atan2(-deltay, -deltax);
                 isForward = false;
             }
 
-            beta = -t_est - alpha + desiredT;
+            beta = -t_est - alpha;
 
             // Ensure that all angles are between -Pi and Pi
             alpha = ThetaWrapAround(alpha);
