@@ -76,6 +76,17 @@ namespace DrRobot.JaguarControl
         private double timeElapsedL = 0;
         private double timeElapsedR = 0;
 
+        // For trajectory Tracking
+        private int trajectoryState = 0;
+        private bool isTrajectoryTracking = false;
+
+        //For check dist function
+        private bool inRange = false;
+        private double phoTrajectoryAccuracy = .1;
+        private double betaTrajectoryAccuracy = 1;
+        private static int numTrajectoryStates = 4;
+        private double[,] trajectoryArray = new double[5,3]{{1,0,0},{1,1,0},{0,1,0},{0,0,0},{1,0,0}};
+
         #endregion
 
 
@@ -135,6 +146,12 @@ namespace DrRobot.JaguarControl
             displayParticles = true;
             displayNodes = true;
             displaySimRobot = true;
+
+            //Added by Ben Teng and Da Eun Shim
+            if (isTrajectoryTracking)
+            {
+                initTrajectory();
+            }
         }
 
         // This function is called from the dialogue window "Reset Button"
@@ -168,10 +185,6 @@ namespace DrRobot.JaguarControl
             while (runThread)
             {
                 // ****************** Additional Student Code: Start ************
-
-                // Students can select what type of localization and control
-                // functions to call here. For lab 3, we just call the function
-                // FlyToSetPoint().
                 
                 // Update Sensor Readings
                 UpdateSensorMeasurements();
@@ -209,7 +222,10 @@ namespace DrRobot.JaguarControl
                     FlyToSetPoint();
 
                     // Follow the trajectory instead of a desired point (lab 3)
-                    //TrackTrajectory();
+                    if (isTrajectoryTracking)
+                    {
+                        TrackTrajectory();
+                    }
 
                     // Determine the desired PWM signals for desired wheel speeds
                     CalcMotorSignals();
@@ -358,7 +374,7 @@ namespace DrRobot.JaguarControl
             }
             
 
-            Console.WriteLine("diffEncoderPulseL: {0} psi1_est: {1} timeStep: {2}\n", diffEncoderPulseL, psi1_est, timeStep);
+            //Console.WriteLine("diffEncoderPulseL: {0} psi1_est: {1} timeStep: {2}\n", diffEncoderPulseL, psi1_est, timeStep);
 
             double prev_e_L = e_L;
             double prev_e_R = e_R;
@@ -546,6 +562,8 @@ namespace DrRobot.JaguarControl
         private void FlyToSetPoint()
         {
 
+            desiredT = ThetaWrapAround(desiredT);
+
             double deltax = desiredX - x_est;
             double deltay = desiredY - y_est;
 
@@ -576,6 +594,13 @@ namespace DrRobot.JaguarControl
             alpha = ThetaWrapAround(alpha);
             beta = ThetaWrapAround(beta);
 
+            // Checks if the robot is tracking trajectory
+            if (isTrajectoryTracking)
+            {
+                //Checks to see if the robot is within the boundaries
+                checkDist(pho);
+            }
+
             //Console.WriteLine("pho: {0} alpha: {1} beta: {2}\n", pho, alpha, beta);
 
             // Check if the robot has reached the threshold displacement and the orientation
@@ -583,6 +608,7 @@ namespace DrRobot.JaguarControl
             {
                 desiredRotRateL = 0;
                 desiredRotRateR = 0;
+
                 Console.WriteLine("Stopped\n");
             }
             else if (Math.Abs(pho) < phoTrackingAccuracy)
@@ -642,6 +668,19 @@ namespace DrRobot.JaguarControl
             }
         }
 
+        //checks if the robot state is close enough to the target to move to the next point
+        void checkDist(double phoTemp)
+        {
+            if (phoTemp < phoTrajectoryAccuracy)
+            {
+                Console.WriteLine("New Target");
+                inRange = true;
+            }
+            else
+            {
+                inRange = false;
+            }
+        }
 
         // Calls global variable psi1 and psi2
         void capWheelRot()
@@ -661,23 +700,44 @@ namespace DrRobot.JaguarControl
         // If they are over, the angle values will rollover
         private double ThetaWrapAround(double angle)
         {
-            if (angle > Math.PI)
+            while (Math.Abs(angle) > Math.PI)
             {
-                angle = angle - 2 * Math.PI;
-            }
-            else if (angle < -Math.PI)
-            {
-                angle = angle + 2 * Math.PI;
+                if (angle > Math.PI)
+                {
+                    angle = angle - 2 * Math.PI;
+                }
+                else if (angle < -Math.PI)
+                {
+                    angle = angle + 2 * Math.PI;
+                }
             }
             return angle;
         }
 
 
 
-        // THis function is called to follow a trajectory constructed by PRMMotionPlanner()
+        // This function is called to follow a trajectory constructed by PRMMotionPlanner()
         private void TrackTrajectory()
         {
+            if(trajectoryState != numTrajectoryStates)
+            {
+                if (inRange)
+                {
+                    Console.WriteLine("trajectoryState: {0}", trajectoryState);
+                    trajectoryState = trajectoryState + 1;
+                    desiredX = trajectoryArray[trajectoryState,0];
+                    desiredY = trajectoryArray[trajectoryState, 1];
+                    desiredT = trajectoryArray[trajectoryState, 2];
+                }
+            }
+        }
 
+        // Initializes Trajectory Tracking
+        void initTrajectory()
+        {
+            desiredX = trajectoryArray[trajectoryState, 0];
+            desiredY = trajectoryArray[trajectoryState, 1];
+            desiredT = trajectoryArray[trajectoryState, 2];            
         }
 
         // THis function is called to construct a collision-free trajectory for the robot to follow
@@ -750,7 +810,7 @@ namespace DrRobot.JaguarControl
 
             distanceTravelled = (wheelDistanceR + wheelDistanceL) / 2;
             angleTravelled = (wheelDistanceR - wheelDistanceL) / (2 * robotRadius);
-            Console.WriteLine("Entered Motion Prediction");
+            //Console.WriteLine("Entered Motion Prediction");
         }
         
         
