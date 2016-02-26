@@ -55,9 +55,9 @@ namespace DrRobot.JaguarControl
         double time = 0;
         DateTime startTime;
 
-        public short K_P = 15;//15;
-        public short K_I = 1;//0;
-        public short K_D = 3;//3;
+        public short K_P = 60;//15;
+        public short K_I = 5;//0;
+        public short K_D = 1;//3;
         public short frictionComp = 8750;//8750;
         public double e_sum_R, e_sum_L;
         public double u_R = 0;
@@ -69,7 +69,12 @@ namespace DrRobot.JaguarControl
         // Global Variables added
         private double psi1 = 0;
         private double psi2 = 0;
+        public double K_Windup = 0.001;
+        private double psi1_est = 0;
+        private double psi2_est = 0;
 
+        private double timeElapsedL = 0;
+        private double timeElapsedR = 0;
 
         #endregion
 
@@ -326,6 +331,8 @@ namespace DrRobot.JaguarControl
             // they are set between 0 and maxPosOutput. A PID control is
             // suggested.
 
+            
+            
             // Gets current time elapsed
             TimeSpan ts = DateTime.Now - startTime;
             //Gets time step
@@ -333,21 +340,52 @@ namespace DrRobot.JaguarControl
             //Updates current time
             time = ts.TotalSeconds;
 
-            double psi1_est = wheelDistanceL / timeStep;
-            double psi2_est = wheelDistanceR / timeStep;
+            if (diffEncoderPulseL != 0)
+            {
+                // Warning? Worry about rollover
+                double prevTime = timeElapsedL;
+                timeElapsedL = time;
+
+                psi1_est = diffEncoderPulseL / (timeElapsedL - prevTime);
+            }
+            if (diffEncoderPulseR != 0)
+            {
+                // Warning? Worry about rollover
+                double prevTime = timeElapsedR;
+                timeElapsedR = time;
+
+                psi2_est = diffEncoderPulseR / (timeElapsedR - prevTime);
+            }
+            
+
+            Console.WriteLine("diffEncoderPulseL: {0} psi1_est: {1} timeStep: {2}\n", diffEncoderPulseL, psi1_est, timeStep);
 
             double prev_e_L = e_L;
             double prev_e_R = e_R;
 
-            e_L = psi1 - psi1_est;
-            e_R = psi2 - psi2_est;
+            e_L = desiredRotRateL - psi1_est;
+            e_R = desiredRotRateL - psi2_est;
 
-            e_sum_L = e_sum_L + e_L;
-            e_sum_R = e_sum_R + e_R;
+            /*
 
-            u_L = K_P * e_L + K_I * e_sum_L + K_D * (e_L - prev_e_L) / timeStep;
-            u_R = K_P * e_R + K_I * e_sum_R + K_D * (e_R - prev_e_R) / timeStep;
+            //Console.WriteLine("desiredRotRateL: {0} psi1_est: {1}\n", desiredRotRateL, psi1_est);
 
+            // Sums all the previous error together and scales it by the estimated wheel velocity.
+            // This attempts to remove windup
+            e_sum_L = (e_sum_L + e_L) * K_Windup * Math.Abs(psi1_est);
+            e_sum_R = (e_sum_R + e_R) * K_Windup * Math.Abs(psi2_est);
+
+            //u_L = K_P * e_L + K_I * e_sum_L + K_D * (e_L - prev_e_L) / timeStep;
+            //u_R = K_P * e_R + K_I * e_sum_R + K_D * (e_R - prev_e_R) / timeStep;
+
+            u_L = K_P * e_L + desiredRotRateR;
+            u_R = K_P * e_R + desiredRotRateR;
+
+            //u_L = capControlSig(u_L);
+            //u_R = capControlSig(u_R);
+
+            capControlSig2();
+            
             motorSignalL = (short)(zeroOutput + u_L);// (zeroOutput + u_L);
             motorSignalR = (short)(zeroOutput - u_R);//(zeroOutput - u_R);
 
@@ -358,20 +396,51 @@ namespace DrRobot.JaguarControl
             motorSignalL = (short)Math.Min(maxPosOutput, Math.Max(0, (int)motorSignalL));
             motorSignalR = (short)Math.Min(maxPosOutput, Math.Max(0, (int)motorSignalR));
 
+            */
+
             // The following settings are used to help develop the controller in simulation.
             // They will be replaced when the actual jaguar is used.
-            /*
+
+            
+            
             motorSignalL = (short)(zeroOutput + desiredRotRateL * 100);// (zeroOutput + u_L);
             motorSignalR = (short)(zeroOutput - desiredRotRateR * 100);//(zeroOutput - u_R);
 
             motorSignalL = (short)Math.Min(maxPosOutput, Math.Max(0, (int)motorSignalL));
             motorSignalR = (short)Math.Min(maxPosOutput, Math.Max(0, (int)motorSignalR));
-            */
+            
 
-
-
+             
             // ****************** Additional Student Code: End   ************
 
+        }
+
+        // Basic capping function
+        double capControlSig(double u)
+        {
+            short zeroOutput = 16383;
+            if (u > zeroOutput)
+            {
+                u = zeroOutput;
+            }
+            else if (u < -zeroOutput)
+            {
+                u = -zeroOutput;
+            }
+            return u;
+        }
+
+        // Capping function that scales the values relative to each other
+        void capControlSig2()
+        {
+            // The maximum wheel rotation (rad/s) to get 0.25 m/s on the wheel
+            double limit = 16383;
+            if (Math.Abs(u_L) > limit || Math.Abs(u_R) > limit)
+            {
+                double maxScaling = Math.Max(Math.Abs(u_L), Math.Abs(u_R));
+                u_L = u_L / maxScaling * limit;
+                u_R = u_R / maxScaling * limit;
+            }
         }
 
         // At every iteration of the control loop, this function sends
@@ -436,7 +505,10 @@ namespace DrRobot.JaguarControl
             {
                 TimeSpan ts = DateTime.Now - startTime;
                 time = ts.TotalSeconds;
-                 String newData = time.ToString() + " " + x.ToString() + " " + y.ToString() + " " + t.ToString();
+                String newData = time.ToString();
+                //newData = newData + " " + x.ToString() + " " + y.ToString() + " " + t.ToString();
+                newData = newData + " " + psi1_est.ToString() + " " + psi2_est.ToString()
+                          + " " + desiredRotRateL.ToString() + " " + desiredRotRateR.ToString();
 
                 logFile.WriteLine(newData);
             }
@@ -507,16 +579,18 @@ namespace DrRobot.JaguarControl
             //Console.WriteLine("pho: {0} alpha: {1} beta: {2}\n", pho, alpha, beta);
 
             // Check if the robot has reached the threshold displacement and the orientation
-            if (Math.Abs(pho) < phoTrackingAccuracy && Math.Abs(beta) < betaTrackingAccuracy)
+            if (Math.Abs(pho) < phoTrackingAccuracy && Math.Abs(desiredT - t_est) < betaTrackingAccuracy)
             {
                 desiredRotRateL = 0;
                 desiredRotRateR = 0;
-                //Console.WriteLine("Stopped\n");
+                Console.WriteLine("Stopped\n");
             }
-            else if (Math.Abs(pho) < phoTrackingAccuracy && Math.Abs(beta) > betaTrackingAccuracy)
+            else if (Math.Abs(pho) < phoTrackingAccuracy)
             {
                 double k_rot = 6;
                 double u = k_rot * (desiredT - t_est);
+
+                //double u = k_rot * (desiredT - t_est) / (Math.Abs(desiredT - t_est));
                 psi1 = u;
                 psi2 = -u;
 
@@ -524,6 +598,7 @@ namespace DrRobot.JaguarControl
 
                 desiredRotRateL = (short)(psi2 / (2 * Math.PI) * ((double)pulsesPerRotation));
                 desiredRotRateR = (short)(psi1 / (2 * Math.PI) * ((double)pulsesPerRotation));
+                Console.WriteLine("Rotating\n");
             }
 
             else
@@ -543,15 +618,6 @@ namespace DrRobot.JaguarControl
                     desiredW = Kalpha * alpha + Kbeta * beta;
                     //                    Console.WriteLine("Backward\n");
                 }
-
-
-                /*
-                                double w1 = (desiredW + desiredV / robotRadius) / 2;
-                                double w2 = (desiredW - desiredV / robotRadius) / 2;
-
-                                double psi1 = 2 * robotRadius / wheelRadius * w1;
-                                double psi2 = -2 * robotRadius / wheelRadius * w2;
-                */
 
                 //Global Variables
                 psi1 = (desiredV + robotRadius * desiredW) / wheelRadius;
@@ -632,23 +698,33 @@ namespace DrRobot.JaguarControl
         // and use those measurements to predict the RELATIVE forward 
         // motion and rotation of the robot. These are referred to as
         // distanceTravelled and angleTravelled respectively.
+
+
+
+        // Calculates the difference between the current encoder setting with the previous one
+        // accounting for possible rollover when the encoderMax has been exceeded
         public double encoderDifference(double currentEncoderPulse, double lastEncoderPulse)
         {
+
 
             double encoderThreshold = encoderMax * 3 / 4;
             double diffEncoderPulse = currentEncoderPulse - lastEncoderPulse;
 
+            // Checks if the encoder has jumped more than is possible as determined by the
+            // encoder threshhold which indicates that the encoder values have rolled over.
             if (Math.Abs(diffEncoderPulse) > encoderThreshold)
             {
+                // Checks if the difference is positive or negative
                 if (lastEncoderPulse > currentEncoderPulse)
                 {
-                    diffEncoderPulse = encoderMax - lastEncoderPulse + currentEncoderPulse;
+                    diffEncoderPulse = encoderMax + diffEncoderPulse;
                 }
                 else
                 {
-                    diffEncoderPulse = -encoderMax + currentEncoderPulse - lastEncoderPulse;
+                    diffEncoderPulse = -encoderMax + diffEncoderPulse;
                 }
             }
+
             return diffEncoderPulse;
         }
 
@@ -674,7 +750,7 @@ namespace DrRobot.JaguarControl
 
             distanceTravelled = (wheelDistanceR + wheelDistanceL) / 2;
             angleTravelled = (wheelDistanceR - wheelDistanceL) / (2 * robotRadius);
-
+            Console.WriteLine("Entered Motion Prediction");
         }
         
         
