@@ -45,12 +45,18 @@ namespace DrRobot.JaguarControl
         public double robotRadius = 0.242;//0.232
         private double angleTravelled, distanceTravelled;
         private double diffEncoderPulseL, diffEncoderPulseR;
-        private double maxVelocity = 0.25;
+//        private double maxVelocity = 1;
+        private double maxVelocity = 1.3;
         private double Kpho = 2; //1
-        private double Kalpha = 4;//8
+        private double Kalpha = 8;//8
         private double Kbeta = -0.5;//-1.0;
         const double alphaTrackingAccuracy = 0.1;
+        // For Hardware Only
         const double betaTrackingAccuracy = 0.1;
+
+        //For Simulation Only
+//        const double betaTrackingAccuracy = 0.03;
+
         const double phoTrackingAccuracy = 0.1;
         double time = 0;
         DateTime startTime;
@@ -82,10 +88,37 @@ namespace DrRobot.JaguarControl
 
         //For check dist function
         private bool inRange = false;
-        private double phoTrajectoryAccuracy = .1;
+        private double phoTrajectoryAccuracy = .4;
         private double betaTrajectoryAccuracy = 1;
-        private static int numTrajectoryStates = 4;
-        private double[,] trajectoryArray = new double[5,3]{{1,0,0},{1,1,0},{0,1,0},{0,0,0},{1,0,0}};
+
+        // number of states
+        private static int numTrajectoryStates = 7;
+
+
+        private double[,] trajectoryArray = new double[7, 3] { { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 } };
+        private double[,] trajLine = new double[7, 3] { { 1, 0, 0 }, { 2, 0, 0 }, { 3, 0, 0 }, { 4, 0, 0 }, { 5, 0, 0 }, { 5, 0, 0 }, { 5, 0, 0 } };
+        //private double[,] trajCircle = new double[7, 3] { { -2, 0, -2 }, { -1, -1.73, -0.78 }, { 1, -1.73, 0 }, { 2, 0, -0.78 }, { 2, 1, 1.7 }, { 1, 1.7, 2.7 }, { 0, 0, 0 } };
+        private double[,] trajCircle = new double[7, 3] { { 1, 1, 1.7 }, { 1,1.7, 2.4 }, { -1, 1.7, 3 }, { 2, 0, -2.6 }, { -1, -1.7, -0.8 }, { 1, -1.73, 0 }, { 2, 0, 0.78 }, };
+
+        //private double[,] trajCircle = new double[7, 3] { { 1, 1, 1.6 }, { 1, -1, 3 }, { -2, 0, -2 }, { 0, -2, 0}, { -1, -1.73, -0.78 }, { 1, -1.73, 0 }, { 2, 0, -0.78 }, };
+
+        // 0 is use default, 1 is line, 2 is circle
+        private int trajectorySelect = 2;
+
+//        private double feedForwardValue = 1;
+        private double feedForwardValue = 4;
+
+
+        // Rotation scaling
+
+        // For hardware
+        //private double k_rot = 6;
+
+        //For feed forward
+        private double k_rot = 20;
+        // For Simulation
+//        private double k_rot = 60;
+        
 
         #endregion
 
@@ -419,8 +452,8 @@ namespace DrRobot.JaguarControl
 
             
             
-            motorSignalL = (short)(zeroOutput + desiredRotRateL * 100);// (zeroOutput + u_L);
-            motorSignalR = (short)(zeroOutput - desiredRotRateR * 100);//(zeroOutput - u_R);
+            motorSignalL = (short)(zeroOutput + desiredRotRateL * 100 / feedForwardValue);// (zeroOutput + u_L);
+            motorSignalR = (short)(zeroOutput - desiredRotRateR * 100 / feedForwardValue);//(zeroOutput - u_R);
 
             motorSignalL = (short)Math.Min(maxPosOutput, Math.Max(0, (int)motorSignalL));
             motorSignalR = (short)Math.Min(maxPosOutput, Math.Max(0, (int)motorSignalR));
@@ -522,9 +555,9 @@ namespace DrRobot.JaguarControl
                 TimeSpan ts = DateTime.Now - startTime;
                 time = ts.TotalSeconds;
                 String newData = time.ToString();
-                //newData = newData + " " + x.ToString() + " " + y.ToString() + " " + t.ToString();
-                newData = newData + " " + psi1_est.ToString() + " " + psi2_est.ToString()
-                          + " " + desiredRotRateL.ToString() + " " + desiredRotRateR.ToString();
+                newData = newData + " " + x.ToString() + " " + y.ToString() + " " + t.ToString();
+          //      newData = newData + " " + psi1_est.ToString() + " " + psi2_est.ToString()
+          //                + " " + desiredRotRateL.ToString() + " " + desiredRotRateR.ToString();
 
                 logFile.WriteLine(newData);
             }
@@ -588,11 +621,17 @@ namespace DrRobot.JaguarControl
                 isForward = false;
             }
 
-            beta = -t_est - alpha + desiredT;
+            double angleDiff = desiredT - t_est;
+
+            angleDiff = checkAngle(desiredT, t_est);
+
+            Console.WriteLine("angleDiff: {0}, desiredT: {1}, t_est: {2},", angleDiff, desiredT, t_est);
+
+            beta = angleDiff - alpha;
 
             // Ensure that all angles are between -Pi and Pi
-            alpha = ThetaWrapAround(alpha);
-            beta = ThetaWrapAround(beta);
+ //           alpha = ThetaWrapAround(alpha);
+ //           beta = ThetaWrapAround(beta);
 
             // Checks if the robot is tracking trajectory
             if (isTrajectoryTracking)
@@ -604,7 +643,7 @@ namespace DrRobot.JaguarControl
             //Console.WriteLine("pho: {0} alpha: {1} beta: {2}\n", pho, alpha, beta);
 
             // Check if the robot has reached the threshold displacement and the orientation
-            if (Math.Abs(pho) < phoTrackingAccuracy && Math.Abs(desiredT - t_est) < betaTrackingAccuracy)
+            if (Math.Abs(pho) < phoTrackingAccuracy && Math.Abs(angleDiff) < betaTrackingAccuracy)
             {
                 desiredRotRateL = 0;
                 desiredRotRateR = 0;
@@ -613,8 +652,7 @@ namespace DrRobot.JaguarControl
             }
             else if (Math.Abs(pho) < phoTrackingAccuracy)
             {
-                double k_rot = 6;
-                double u = k_rot * (desiredT - t_est);
+                double u = k_rot * angleDiff;
 
                 //double u = k_rot * (desiredT - t_est) / (Math.Abs(desiredT - t_est));
                 psi1 = u;
@@ -667,6 +705,21 @@ namespace DrRobot.JaguarControl
                 //                desiredRotRateR = 0;
             }
         }
+
+        double checkAngle(double desired, double estimated)
+        {
+            double thetaDiff = desired - estimated;
+            if (thetaDiff < -Math.PI)
+            {
+                thetaDiff = thetaDiff + 2 * Math.PI;
+            }
+            else if (thetaDiff > Math.PI)
+            {
+                thetaDiff = thetaDiff - 2 * Math.PI;
+            }
+            return thetaDiff;
+        }
+
 
         //checks if the robot state is close enough to the target to move to the next point
         void checkDist(double phoTemp)
@@ -721,13 +774,16 @@ namespace DrRobot.JaguarControl
         {
             if(trajectoryState != numTrajectoryStates)
             {
+                //Console.WriteLine("trajectoryState {0}",trajectoryState);
+                //Console.WriteLine("desiredX: {0} desiredY: {1} desiredT: {2}\n", desiredX, desiredY, desiredT);
                 if (inRange)
                 {
                     Console.WriteLine("trajectoryState: {0}", trajectoryState);
-                    trajectoryState = trajectoryState + 1;
+                    
                     desiredX = trajectoryArray[trajectoryState,0];
                     desiredY = trajectoryArray[trajectoryState, 1];
                     desiredT = trajectoryArray[trajectoryState, 2];
+                    trajectoryState = trajectoryState + 1;
                 }
             }
         }
@@ -735,6 +791,15 @@ namespace DrRobot.JaguarControl
         // Initializes Trajectory Tracking
         void initTrajectory()
         {
+            switch (trajectorySelect)
+            {
+                case 1:
+                    trajectoryArray = trajLine;
+                    break;
+                case 2:
+                    trajectoryArray = trajCircle;
+                    break;
+            }
             desiredX = trajectoryArray[trajectoryState, 0];
             desiredY = trajectoryArray[trajectoryState, 1];
             desiredT = trajectoryArray[trajectoryState, 2];            
