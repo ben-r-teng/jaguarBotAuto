@@ -112,7 +112,7 @@ namespace DrRobot.JaguarControl
 
         // For trajectory Tracking
         private int trajectoryState = 0;
-        private bool isTrajectoryTracking = false;
+        private bool isTrajectoryTracking = true;
 
         //For check dist function
         private bool inRange = false;
@@ -125,8 +125,8 @@ namespace DrRobot.JaguarControl
 
         private double[,] trajectoryArray = new double[7, 3] { { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 }, { 1, 0, 0 } };
         private double[,] trajLine = new double[7, 3] { { 1, 0, 0 }, { 2, 0, 0 }, { 3, 0, 0 }, { 4, 0, 0 }, { 5, 0, 0 }, { 5, 0, 0 }, { 5, 0, 0 } };
-        //private double[,] trajCircle = new double[7, 3] { { -2, 0, -2 }, { -1, -1.73, -0.78 }, { 1, -1.73, 0 }, { 2, 0, -0.78 }, { 2, 1, 1.7 }, { 1, 1.7, 2.7 }, { 0, 0, 0 } };
-        private double[,] trajCircle = new double[7, 3] { { 1, 1, 1.7 }, { 1, 1.7, 2.4 }, { -1, 1.7, 3 }, { 2, 0, -2.6 }, { -1, -1.7, -0.8 }, { 1, -1.73, 0 }, { 2, 0, 0.78 }, };
+        private double[,] trajCircle = new double[7, 3] { { -2, 0, -2 }, { -1, -1.73, -0.78 }, { 1, -1.73, 0 }, { 2, 0, -0.78 }, { 2, 1, 1.7 }, { 1, 1.7, 2.7 }, { 0, 0, 0 } };
+        //private double[,] trajCircle = new double[7, 3] { { 1, 1, 1.7 }, { 1, 1.7, 2.4 }, { -1, 1.7, 3 }, { 2, 0, -2.6 }, { -1, -1.7, -0.8 }, { 1, -1.73, 0 }, { 2, 0, 0.78 }, };
 
         //private double[,] trajCircle = new double[7, 3] { { 1, 1, 1.6 }, { 1, -1, 3 }, { -2, 0, -2 }, { 0, -2, 0}, { -1, -1.73, -0.78 }, { 1, -1.73, 0 }, { 2, 0, -0.78 }, };
 
@@ -300,7 +300,10 @@ namespace DrRobot.JaguarControl
                     FlyToSetPoint();
 
                     // Follow the trajectory instead of a desired point (lab 3)
-                    //TrackTrajectory();
+                    if (isTrajectoryTracking)
+                    {
+                        TrackTrajectory();
+                    }
 
                     // Actuate motors based actuateMotorL and actuateMotorR
                     if (jaguarControl.Simulating())
@@ -724,7 +727,7 @@ namespace DrRobot.JaguarControl
             //            Console.WriteLine("Calc: {0} deltax: {1} deltay: {2}\n", Math.Pow(deltax, 2), deltax, deltay);
 
             double pho = Math.Sqrt(Math.Pow(deltax, 2) + Math.Pow(deltay, 2));
-            double alpha = -t_est + Math.Atan2(deltay, deltax);
+            double alpha = ThetaWrapAround(-t_est + Math.Atan2(deltay, deltax));
             //            Console.WriteLine("alpha: {0} calc2: {1}\n", alpha, Math.Atan2(deltay, deltax));
             double beta;
 
@@ -738,17 +741,15 @@ namespace DrRobot.JaguarControl
             if (Math.Abs(alpha) > Math.PI / 2)
             {
                 //Backwards movement calculation
-                alpha = -t_est + Math.Atan2(-deltay, -deltax);
+                alpha = ThetaWrapAround(-t_est + Math.Atan2(-deltay, -deltax));
                 isForward = false;
             }
 
-            double angleDiff = desiredT - t_est;
+            double angleDiff = ThetaWrapAround(desiredT - t_est);
 
-            angleDiff = checkAngle(desiredT, t_est);
+            //Console.WriteLine("angleDiff: {0}, desiredT: {1}, t_est: {2},", angleDiff, desiredT, t_est);
 
-            Console.WriteLine("angleDiff: {0}, desiredT: {1}, t_est: {2},", angleDiff, desiredT, t_est);
-
-            beta = angleDiff - alpha;
+            beta = ThetaWrapAround(angleDiff - alpha);
 
             // Ensure that all angles are between -Pi and Pi
             //           alpha = ThetaWrapAround(alpha);
@@ -826,6 +827,7 @@ namespace DrRobot.JaguarControl
                 //                desiredRotRateR = 0;
             }
         }
+
         //checks if the robot state is close enough to the target to move to the next point
         void checkDist(double phoTemp)
         {

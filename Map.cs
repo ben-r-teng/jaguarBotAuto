@@ -102,13 +102,63 @@ namespace DrRobot.JaguarControl
         // This function is used in your particle filter localization lab. Find 
         // the range measurement to a segment given the ROBOT POSITION (x, y) and 
         // SENSOR ORIENTATION (t)
+
+        // WARNING: TODO: Might want to replace the slopes and intercepts for the wall maps
         double GetWallDistance(double x, double y, double t, int segment){
 
-
-
-
 	        // ****************** Additional Student Code: End   ************
+            double x1 = mapSegmentCorners[segment, 0, 0];
+            double y1 = mapSegmentCorners[segment, 0, 1];
+            double x2 = mapSegmentCorners[segment, 1, 0];
+            double y2 = mapSegmentCorners[segment, 1, 1];
+            double xf = 0;
+            double yf = 0;
 
+            double noWallNum = 999999;
+            // Parallel Vertical lines
+            if((x1 == x2) && (t == Math.PI/2) && (t == -Math.PI))
+            {
+                return noWallNum;
+            }
+            // if vertical line
+            else if (x1 == x2)
+            {
+                double mr = Math.Tan(t);
+                xf = x1;
+                yf = mr * (xf - x) + y;
+            }
+            //Vertical Robot
+            else if ((t == Math.PI / 2) && (t == -Math.PI))
+            {
+                double mw = (y2 - y1) / (x2 - x1);
+                xf = x;
+                yf = mw * (x - x1) + y1;
+            }
+            else
+            {
+                double mw = (y2 - y1)/(x2 - x1);
+                double mr = Math.Tan(t);
+                if (mw == mr)
+                {
+                    return noWallNum;
+                }
+                xf = (mr * x - mw * x1 + y1 - y) / (mr - mw);
+                yf = mr * (xf - x) + y;
+            }
+            double largerx = Math.Max(x1, x2);
+            double smallerx = Math.Min(x1, x2);
+            double largery = Math.Max(y1, y2);
+            double smallery = Math.Min(y1, y2);
+
+            if (xf >= smallerx && xf <= largerx && yf >= smallery && yf <= largery)
+            {
+                return Math.Sqrt(Math.Pow(xf - x, 2) + Math.Pow(yf - y, 2));
+            }
+            else
+            {
+                return noWallNum;
+            }
+           // double yWall = mapSegment;
 	        return 0;
         }
 
@@ -119,8 +169,16 @@ namespace DrRobot.JaguarControl
 
         public double GetClosestWallDistance(double x, double y, double t){
 
-	        double minDist = 6.000;
-
+	        double minDist = GetWallDistance(x, y, t, 0);
+            double currDist = GetWallDistance(x, y, t, 0);
+            for (int i = 0; i < numMapSegments; i++)
+            {
+                currDist = GetWallDistance(x, y, t, i);
+                if (currDist < minDist)
+                {
+                    minDist = currDist;
+                }
+            }
 	        // ****************** Additional Student Code: Start ************
 
 	        // Put code here that loops through segments, calling the
@@ -156,9 +214,8 @@ namespace DrRobot.JaguarControl
         // does not hit the segment, a large number is returned.
 
         double GetWallDistance(double x, double y, int segment, double tol, double n2x, double n2y){
-		double dist = 0;
-
-	        return dist;
+            double dist = 0;
+            return dist;
         }
 
 
