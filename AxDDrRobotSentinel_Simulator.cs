@@ -8,9 +8,9 @@ namespace DrRobot.JaguarControl
     public class AxDDrRobotSentinel_Simulator //: AxDRROBOTSentinelCONTROLLib.AxDDrRobotSentinel 
     {
         //public Navigation navigation;
-        private int encoderPulseL, encoderPulseR;
-        private int encoderSpeedL, encoderSpeedR;
-        private int encoderDirL, encoderDirR;
+        private double encoderPulseL, encoderPulseR;
+        private double encoderSpeedL, encoderSpeedR;
+        private double encoderDirL, encoderDirR;
         private short actuatorL, actuatorR;
         private short zeroOutput = 16383;
         private short maxPosOutput = 32767;
@@ -38,11 +38,11 @@ namespace DrRobot.JaguarControl
             encoderDirR = Math.Sign(actuatorR);
             encoderSpeedL = Math.Abs(actuatorL);
             encoderSpeedR = Math.Abs(actuatorR);
-            encoderPulseL = limitEncoder(encoderPulseL + encoderSpeedL * encoderDirL * deltaT/1000);
-            encoderPulseR = limitEncoder(encoderPulseR + encoderSpeedR * encoderDirR * deltaT/1000);
+            encoderPulseL = limitEncoder(encoderPulseL + encoderSpeedL * encoderDirL * deltaT/1000.0);
+            encoderPulseR = limitEncoder(encoderPulseR + encoderSpeedR * encoderDirR * deltaT/1000.0);
         }
 
-        private int limitEncoder(int value)
+        private double limitEncoder(double value)
         {
             if (value > 32767)
                 value -= 32767;
@@ -53,33 +53,33 @@ namespace DrRobot.JaguarControl
 
         public int GetEncoderPulse4()
         {
-            return encoderPulseL;
+            return (int)encoderPulseL;
         }
 
         public int GetEncoderSpeed4()
         {
-            return encoderSpeedL;
+            return (int) encoderSpeedL;
         }
 
         public int GetEncoderDir4()
         {
-            return encoderDirL;
+            return (int) encoderDirL;
         }
 
 
         public int GetEncoderPulse5()
         {
-            return encoderPulseR;
+            return (int)encoderPulseR;
         }
 
         public int GetEncoderSpeed5()
         {
-            return encoderSpeedR;
+            return (int) encoderSpeedR;
         }
 
         public int GetEncoderDir5()
         {
-            return encoderDirR;
+            return (int) encoderDirR;
         }
 
         public void DcMotorVelocityNonTimeCtrAll(short channel1, short channel2, short channel3, short channel4, short channel5, short channel6)
