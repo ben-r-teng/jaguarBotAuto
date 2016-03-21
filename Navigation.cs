@@ -112,7 +112,7 @@ namespace DrRobot.JaguarControl
 
         // For trajectory Tracking
         private int trajectoryState = 0;
-        private bool isTrajectoryTracking = true;
+        private bool isTrajectoryTracking = false;
 
         //For check dist function
         private bool inRange = false;
@@ -305,6 +305,33 @@ namespace DrRobot.JaguarControl
                         TrackTrajectory();
                     }
 
+                    // Test wallDistance
+                    //Console.WriteLine("Get Closest : {0}\r\n",map.GetClosestWallDistance(x_est, y_est, t_est));
+//                    Console.WriteLine("Get Closest : {0}\r\n", map.GetClosestWallDistance(x_est, y_est, t_est));
+
+                    double xVal = desiredX;
+                    double yVal = desiredY;
+                    double tVal = desiredT;
+
+                    Console.WriteLine("Get Closest : {0}", map.GetClosestWallDistance(xVal, yVal, tVal));
+                    Console.WriteLine("GetWall 0 {0} ", map.GetWallDistance(xVal, yVal, tVal, 0));
+                    Console.WriteLine("GetWall 1 {0} ", map.GetWallDistance(xVal, yVal, tVal, 1));
+                    Console.WriteLine("GetWall 2 {0} ", map.GetWallDistance(xVal, yVal, tVal, 2));
+                    Console.WriteLine("GetWall 3 {0} ", map.GetWallDistance(xVal, yVal, tVal, 3));
+                    Console.WriteLine("GetWall 4 {0} ", map.GetWallDistance(xVal, yVal, tVal, 4));
+                    Console.WriteLine("GetWall 5 {0} ", map.GetWallDistance(xVal, yVal, tVal, 5));
+                    Console.WriteLine("GetWall 6 {0} ", map.GetWallDistance(xVal, yVal, tVal, 6));
+                    Console.WriteLine("GetWall 7 {0} ", map.GetWallDistance(xVal, yVal, tVal, 7));
+
+ /*
+                    Console.WriteLine("GetWall 1 {0} ", map.GetWallDistance(x_est, y_est, t_est, 1));
+                    Console.WriteLine("GetWall 2 {0} ", map.GetWallDistance(x_est, y_est, t_est, 2));
+                    Console.WriteLine("GetWall 3 {0} ", map.GetWallDistance(x_est, y_est, t_est, 3));
+                    Console.WriteLine("GetWall 4 {0} ", map.GetWallDistance(x_est, y_est, t_est, 4));
+                    Console.WriteLine("GetWall 5 {0} ", map.GetWallDistance(x_est, y_est, t_est, 5));
+                    Console.WriteLine("GetWall 6 {0} ", map.GetWallDistance(x_est, y_est, t_est, 6));
+                    Console.WriteLine("GetWall 7 {0} ", map.GetWallDistance(x_est, y_est, t_est, 7));
+*/
                     // Actuate motors based actuateMotorL and actuateMotorR
                     if (jaguarControl.Simulating())
                     {

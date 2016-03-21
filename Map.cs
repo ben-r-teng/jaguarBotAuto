@@ -18,6 +18,7 @@ namespace DrRobot.JaguarControl
         private double maxWorkspaceX =  10;
         private double minWorkspaceY = -10;
         private double maxWorkspaceY =  10;
+        private double noWallNum = 999999;
 
         public Map()
         {
@@ -104,19 +105,22 @@ namespace DrRobot.JaguarControl
         // SENSOR ORIENTATION (t)
 
         // WARNING: TODO: Might want to replace the slopes and intercepts for the wall maps
-        double GetWallDistance(double x, double y, double t, int segment){
+        public double GetWallDistance(double x, double y, double t, int segment){
 
 	        // ****************** Additional Student Code: End   ************
             double x1 = mapSegmentCorners[segment, 0, 0];
             double y1 = mapSegmentCorners[segment, 0, 1];
             double x2 = mapSegmentCorners[segment, 1, 0];
             double y2 = mapSegmentCorners[segment, 1, 1];
+
+            // The temporary variable representing the intersection of the wall and the ray casted
             double xf = 0;
             double yf = 0;
 
-            double noWallNum = 999999;
+            //Phase 1: Check if the robot and the walls intersect
+            
             // Parallel Vertical lines
-            if((x1 == x2) && (t == Math.PI/2) && (t == -Math.PI))
+            if((x1 == x2) && ((t == Math.PI/2) || (t == -Math.PI)))
             {
                 return noWallNum;
             }
@@ -128,7 +132,7 @@ namespace DrRobot.JaguarControl
                 yf = mr * (xf - x) + y;
             }
             //Vertical Robot
-            else if ((t == Math.PI / 2) && (t == -Math.PI))
+            else if ((t == Math.PI / 2) || (t == -Math.PI))
             {
                 double mw = (y2 - y1) / (x2 - x1);
                 xf = x;
@@ -145,10 +149,40 @@ namespace DrRobot.JaguarControl
                 xf = (mr * x - mw * x1 + y1 - y) / (mr - mw);
                 yf = mr * (xf - x) + y;
             }
-            double largerx = Math.Max(x1, x2);
-            double smallerx = Math.Min(x1, x2);
-            double largery = Math.Max(y1, y2);
-            double smallery = Math.Min(y1, y2);
+
+
+
+            //Check if ray casted in right direction
+            if ((t == Math.PI / 2) || (t == -Math.PI))
+            {
+                if (xf > x)
+                    return noWallNum;
+
+            }
+            else if (t == 0)
+            {
+                if (xf < x)
+                    return noWallNum;
+            }
+            // The theta and the difference of the location and wall should match
+            // eg. positive theta must correspond to a wall above the robot
+            // else the wall cant collide
+            else if (t * (yf - y) <= 0)
+            {
+                return noWallNum;
+            }
+
+            //Rounded to catch small errors
+            int roundDig = 3;
+            xf = Math.Round(xf, roundDig);
+            yf = Math.Round(yf, roundDig);
+
+            //Phase 2: Check if the intersection point is between the wall ends
+            double largerx = Math.Round(Math.Max(x1, x2),roundDig);
+            double smallerx = Math.Round(Math.Min(x1, x2),roundDig);
+            double largery = Math.Round(Math.Max(y1, y2),roundDig);
+            double smallery = Math.Round(Math.Min(y1, y2),roundDig);
+
 
             if (xf >= smallerx && xf <= largerx && yf >= smallery && yf <= largery)
             {
@@ -169,8 +203,9 @@ namespace DrRobot.JaguarControl
 
         public double GetClosestWallDistance(double x, double y, double t){
 
-	        double minDist = GetWallDistance(x, y, t, 0);
-            double currDist = GetWallDistance(x, y, t, 0);
+
+            double minDist = noWallNum;
+            double currDist = noWallNum;
             for (int i = 0; i < numMapSegments; i++)
             {
                 currDist = GetWallDistance(x, y, t, i);
@@ -183,8 +218,6 @@ namespace DrRobot.JaguarControl
 
 	        // Put code here that loops through segments, calling the
 	        // function GetWallDistance.
-
-
 
 	        // ****************** Additional Student Code: End   ************
 
@@ -215,6 +248,8 @@ namespace DrRobot.JaguarControl
 
         double GetWallDistance(double x, double y, int segment, double tol, double n2x, double n2y){
             double dist = 0;
+
+
             return dist;
         }
 
