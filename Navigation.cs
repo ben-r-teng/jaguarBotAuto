@@ -1062,7 +1062,22 @@ namespace DrRobot.JaguarControl
             // Put code here to calculate x_est, y_est, t_est using a PF
 
 
+            for (int i = 0; i < numParticles; ++i)
+            {
 
+                double wheelDistanceRTemp = wheelDistanceR * random.NextDouble() * 2;
+                double wheelDistanceLTemp = wheelDistanceL * random.NextDouble() * 2;
+
+                double distanceTravelledTemp = (wheelDistanceRTemp + wheelDistanceLTemp) / 2;
+                double angleTravelledTemp = (wheelDistanceRTemp - wheelDistanceLTemp) / (2 * robotRadius);
+
+                propagatedParticles[i].x = particles[i].x + distanceTravelledTemp * Math.Cos(particles[i].t + angleTravelledTemp / 2);
+                propagatedParticles[i].y = particles[i].y + distanceTravelledTemp * Math.Sin(particles[i].t + angleTravelledTemp / 2);
+                propagatedParticles[i].t = particles[i].t + angleTravelledTemp;
+
+
+                CalculateWeight(i);
+            }
 
             // ****************** Additional Student Code: End   ************
 
@@ -1077,6 +1092,8 @@ namespace DrRobot.JaguarControl
         void CalculateWeight(int p)
         {
 	        double weight = 0;
+
+
 
 	        // ****************** Additional Student Code: Start ************
 
@@ -1117,17 +1134,10 @@ namespace DrRobot.JaguarControl
 
         void SetRandomPos(int p){
 
-	        // ****************** Additional Student Code: Start ************
-
-	        // Put code here to calculated the position, orientation of 
-            // particles[p]. Feel free to use the random.NextDouble() function. 
-	        // It might be helpful to use boundaries defined in the
-	        // Map.cs file (e.g. map.minX)
-	        
-
-
-
-            // ****************** Additional Student Code: End   ************
+            particles[p].x = random.NextDouble() * (map.maxX - map.minX) + map.minX;
+            particles[p].y = random.NextDouble() * (map.maxY - map.minY) + map.minY;
+            particles[p].t = 2 * Math.PI * random.NextDouble() - Math.PI;
+            particles[p].w = 1.0 / numParticles;
         }
 
 
