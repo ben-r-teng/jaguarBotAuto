@@ -1089,7 +1089,8 @@ namespace DrRobot.JaguarControl
                     {
                         maxParticleWeight = propagatedParticles[i].w;
                     }
-
+   //                 Console.Write("Particle Number: {0}, Location: ({1},{2},{3}), ", i, propagatedParticles[i].x, propagatedParticles[i].y, propagatedParticles[i].t);
+   //                 Console.WriteLine("Weight: {0}, MaxWeight {1} ", propagatedParticles[i].w, maxParticleWeight);
                     
                 }
             
@@ -1174,12 +1175,15 @@ namespace DrRobot.JaguarControl
         // This function should calculate the weight associated with particle p.
         void CalculateWeight(int p)
         {
+            propagatedParticles[p].w = 0;
             for (int i = 0; i < LaserData.Length; i = i + laserStepSize)
             {
-                double partDist = 1000 * map.GetClosestWallDistance(particles[i].x, particles[i].y, particles[i].t - 1.57 + laserAngles[i]);
-
-                propagatedParticles[p].w = propagatedParticles[p].w + gaussianDist(partDist, LaserData[i], stdDevGuess);
-                //Console.WriteLine("Particle Distribution: {0},LaserData: {1},Gaussian: {2}",partDist,LaserData[i], gaussianDist(partDist, LaserData[i], stdDevGuess));
+                double partDist = 1000 * map.GetClosestWallDistance(particles[p].x, particles[p].y, particles[p].t - 1.57 + laserAngles[i]);
+//                double temp = LaserData[i];
+                double individualWeight = gaussianDist(partDist, LaserData[i], stdDevGuess);
+                propagatedParticles[p].w = propagatedParticles[p].w + individualWeight;
+                
+              //  Console.WriteLine("Particle Distribution: {0},LaserData: {1},Gaussian: {2}",partDist,LaserData[i], gaussianDist(partDist, LaserData[i], stdDevGuess));
             }
         }
 
@@ -1196,7 +1200,7 @@ namespace DrRobot.JaguarControl
 
 
 	        // Set particles in random locations and orientations within environment
-	        for (int i=0; i< numParticles; i++){
+	        for (int i=0; i< numParticles; ++i){
 
 		        // Either set the particles at known start position [0 0 0],  
 		        // or set particles at random locations.
@@ -1221,7 +1225,6 @@ namespace DrRobot.JaguarControl
         // things easier.
 
         void SetRandomPos(int p){
-
             particles[p].x = random.NextDouble() * (map.maxX - map.minX) + map.minX;
             particles[p].y = random.NextDouble() * (map.maxY - map.minY) + map.minY;
             particles[p].t = 2 * Math.PI * random.NextDouble() - Math.PI;
@@ -1233,9 +1236,12 @@ namespace DrRobot.JaguarControl
 
         // For particle p, this function will select a start predefined position. 
         void SetStartPos(int p){
-	        particles[p].x = initialX;
-	        particles[p].y = initialY;
-	        particles[p].t = initialT;
+            particles[p].x = initialX;
+            particles[p].y = initialY;
+            particles[p].t = initialT;
+//	        particles[p].x = initialX + .5;
+//	        particles[p].y = initialY + .5;
+//	        particles[p].t = initialT + .5;
         }
 
 
