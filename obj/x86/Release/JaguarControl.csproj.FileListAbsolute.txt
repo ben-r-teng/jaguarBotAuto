@@ -119,3 +119,4 @@ C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\DrRobot.JaguarControl.Propert
 C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.csproj.GenerateResource.Cache
 C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.exe
 C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.pdb
+C:\Users\Ben\Desktop\jaguarBotAuto\obj\x86\Release\JaguarControl.csprojResolveAssemblyReference.cache

@@ -81,7 +81,7 @@ namespace DrRobot.JaguarControl
         public Particle[] particles;
         public Particle[] propagatedParticles;
         public int numParticles = 1000;          //1000
-        public double K_wheelRandomness = 0.15;//0.25
+        public double K_wheelRandomness = 10;//0.25
         public Random random = new Random();
         public bool newLaserData = false;
         public double laserMaxRange = 4.0;
@@ -90,9 +90,10 @@ namespace DrRobot.JaguarControl
         private int laserCounter;
         private int laserStepSize = 10;         //3
 
+        // Refresh rate of the laser (ms)
+        private double laserRefresh = 20;
+
         private double stdDevGuess = 300;
-
-
 
         public class Particle
         {
@@ -152,8 +153,6 @@ namespace DrRobot.JaguarControl
         //        private double k_rot = 60;
 
 
-        // Refresh rate of the laser (ms)
-        private double laserRefresh = 2000;
         
 
         #endregion
@@ -1071,11 +1070,12 @@ namespace DrRobot.JaguarControl
             double maxParticleWeight = 0;
             if (distanceTravelled != 0 || angleTravelled != 0)
             {
+               // newLaserData = false;
                 for (int i = 0; i < numParticles; ++i)
                 {
                     //(1 - random.NextDouble() * K_wheelRandomness + K_wheelRandomness/2)
-                    double wheelDistanceRTemp = wheelDistanceR * random.NextDouble() * 1;
-                    double wheelDistanceLTemp = wheelDistanceL * random.NextDouble() * 1;
+                    double wheelDistanceRTemp = wheelDistanceR + wheelDistanceR * RandomGaussian() * K_wheelRandomness;
+                    double wheelDistanceLTemp = wheelDistanceL + wheelDistanceL * RandomGaussian() * K_wheelRandomness;
 
                     double distanceTravelledTemp = (wheelDistanceRTemp + wheelDistanceLTemp) / 2;
                     double angleTravelledTemp = (wheelDistanceRTemp - wheelDistanceLTemp) / (2 * robotRadius);
@@ -1146,7 +1146,9 @@ namespace DrRobot.JaguarControl
             for (int i = 0; i < numParticles; ++i)
             {
                 int selectPart = (int)(random.NextDouble() * (double)currPart);
-                particles[i] = propagatedParticles[tempParticles[selectPart]];
+                particles[i].x = propagatedParticles[tempParticles[selectPart]].x;
+                particles[i].y = propagatedParticles[tempParticles[selectPart]].y;
+                particles[i].t = propagatedParticles[tempParticles[selectPart]].t;
             }
         }
         
@@ -1236,12 +1238,11 @@ namespace DrRobot.JaguarControl
 
         // For particle p, this function will select a start predefined position. 
         void SetStartPos(int p){
-            particles[p].x = initialX;
-            particles[p].y = initialY;
-            particles[p].t = initialT;
-//	        particles[p].x = initialX + .5;
-//	        particles[p].y = initialY + .5;
-//	        particles[p].t = initialT + .5;
+            // Set to non-zero for kidnapped Robot scenario
+            double offset = 0;
+	        particles[p].x = initialX + offset;
+	        particles[p].y = initialY + offset;
+	        particles[p].t = initialT + offset;
         }
 
 
