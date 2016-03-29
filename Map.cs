@@ -18,7 +18,7 @@ namespace DrRobot.JaguarControl
         private double maxWorkspaceX =  10;
         private double minWorkspaceY = -10;
         private double maxWorkspaceY =  10;
-        private double noWallNum = 999999;
+        public double noWallNum = 999999;
 
         public Map()
         {

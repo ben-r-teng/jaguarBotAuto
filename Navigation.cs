@@ -80,20 +80,20 @@ namespace DrRobot.JaguarControl
         public Map map;
         public Particle[] particles;
         public Particle[] propagatedParticles;
-        public int numParticles = 1000;          //1000
-        public double K_wheelRandomness = 10;//0.25
+        public int numParticles = 1000;          //1000 
         public Random random = new Random();
         public bool newLaserData = false;
         public double laserMaxRange = 4.0;
-        public double laserMinRange = 0.2;
+        public double laserMinRange = 0.1;
         public double[] laserAngles;
         private int laserCounter;
-        private int laserStepSize = 10;         //3
+        private int laserStepSize = 5;         //3
 
         // Refresh rate of the laser (ms)
         private double laserRefresh = 20;
 
         private double stdDevGuess = 300;
+        public double K_wheelRandomness = 4;//0.25
 
         public class Particle
         {
@@ -460,6 +460,12 @@ namespace DrRobot.JaguarControl
                     for (int i = 0; i < LaserData.Length; i=i+laserStepSize)
                     {
                         LaserData[i] = (long)(1000 * map.GetClosestWallDistance(x, y, t -1.57 + laserAngles[i]));
+                        if (LaserData[i] > laserMaxRange*1000)
+                        {
+//                            Console.WriteLine("check");
+                            LaserData[i] = (long) (1000 * map.noWallNum);
+                        }
+  //                      Console.WriteLine("laserdata of {0} is {1}", i, LaserData[i]);
                     }
                     laserCounter = 0;
                     newLaserData = true;
@@ -1178,18 +1184,25 @@ namespace DrRobot.JaguarControl
         void CalculateWeight(int p)
         {
             propagatedParticles[p].w = 0;
+            double individualWeight = 0;
             for (int i = 0; i < LaserData.Length; i = i + laserStepSize)
             {
                 double partDist = 1000 * map.GetClosestWallDistance(particles[p].x, particles[p].y, particles[p].t - 1.57 + laserAngles[i]);
 //                double temp = LaserData[i];
-                double individualWeight = gaussianDist(partDist, LaserData[i], stdDevGuess);
+                if (LaserData[i] < laserMinRange * 1000)
+                {
+                    individualWeight = 0;
+                }
+                else
+                {
+                    individualWeight = gaussianDist(partDist, LaserData[i], stdDevGuess);
+                }
                 propagatedParticles[p].w = propagatedParticles[p].w + individualWeight;
-                
-              //  Console.WriteLine("Particle Distribution: {0},LaserData: {1},Gaussian: {2}",partDist,LaserData[i], gaussianDist(partDist, LaserData[i], stdDevGuess));
+//                Console.WriteLine("i: {0},LaserData: {1}, LaserAngle: {2}", i, LaserData[i], laserAngles[i]);
             }
         }
 
-        double gaussianDist(double value,double mean, double stdDev)
+        double gaussianDist(double value, double mean, double stdDev)
         {
             return Math.Exp(-1*Math.Pow((value - mean),2)/(2*Math.Pow(stdDev,2)));
         }
