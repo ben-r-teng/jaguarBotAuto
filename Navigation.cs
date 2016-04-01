@@ -96,10 +96,10 @@ namespace DrRobot.JaguarControl
         private double laserRefresh = 20;
 
         private double stdDevGuess = 300;
-        public double K_wheelRandomness = 2;//0.25
+        public double K_wheelRandomness = 1;//0.25
 
         // Lower Variability with high values
-        double particleVariability = 2.5;
+        double particleVariability = 6;
 
 
 
@@ -197,9 +197,9 @@ namespace DrRobot.JaguarControl
         // This is called every time the reset button is pressed
         public void Initialize()
         {
-            initialX = -3;
-            initialY = 2;
-            initialT = -.8;
+            initialX = 0;
+            initialY = 0;
+            initialT = 0;
             // Initialize state estimates
             x = initialX;
             y = initialY;
@@ -674,7 +674,7 @@ namespace DrRobot.JaguarControl
                 TimeSpan ts = DateTime.Now - startTime;
                 time = ts.TotalSeconds;
                 String newData = time.ToString() + " " + x.ToString() + " " + y.ToString() + " " + t.ToString();
-                newData = newData + " " + calcParticleStdDev();
+                newData = newData + " " + x_est.ToString() + " " + y_est.ToString() + " " + calcParticleStdDev(x_est, y_est).ToString();
 
                 logFile.WriteLine(newData);
             }
@@ -1193,7 +1193,7 @@ namespace DrRobot.JaguarControl
             }
         }
 
-        double calcParticleError()
+        double calcParticleError(double x_test, double y_test)
         {
             double totalError = 0;
             for (int i = 0; i < numParticles; ++i)
@@ -1203,12 +1203,12 @@ namespace DrRobot.JaguarControl
             return totalError;
         }
 
-        double calcParticleStdDev()
+        double calcParticleStdDev(double x_test, double y_test)
         {
             double totalSqrError = 0;
             for (int i = 0; i < numParticles; ++i)
             {
-                double dist = Math.Sqrt(Math.Pow(x - particles[i].x, 2) + Math.Pow(y - particles[i].y, 2));
+                double dist = Math.Sqrt(Math.Pow(x_test - particles[i].x, 2) + Math.Pow(y_test - particles[i].y, 2));
                 totalSqrError = totalSqrError + Math.Pow(dist, 2);
             }
             return Math.Sqrt(totalSqrError / numParticles);
